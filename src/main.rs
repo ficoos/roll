@@ -1,0 +1,194 @@
+extern crate rand;
+
+use rand::Rng;
+use std::iter::Peekable;
+use std::str::Chars;
+use std::fmt;
+
+pub struct Roll { count: u32, sides: u32 }
+pub struct Scalar { value: u32 }
+pub struct Add { lhs: Box<Expression>, rhs: Box<Expression> }
+pub struct Subtract { lhs: Box<Expression>, rhs: Box<Expression> }
+
+pub struct ParseError {
+    message: &'static str,
+}
+
+pub trait Expression : fmt::Display {
+    fn get_value(&self) -> u32;
+}
+
+impl fmt::Display for Add {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} + {}", self.lhs, self.rhs)
+    }
+}
+
+impl Expression for Add {
+    fn get_value(&self) -> u32 {
+        self.lhs.get_value() + self.rhs.get_value()
+    }
+}
+
+impl fmt::Display for Subtract {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} - {}", self.lhs, self.rhs)
+    }
+}
+
+impl Expression for Subtract {
+    fn get_value(&self) -> u32 {
+        self.lhs.get_value() - self.rhs.get_value()
+    }
+}
+
+impl fmt::Display for Roll {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.count {
+            1 => write!(f, "d{}", self.sides),
+            _ => write!(f, "{}d{}", self.count, self.sides),
+        }
+    }
+}
+
+impl Expression for Roll {
+    fn get_value(&self) -> u32 {
+        let mut sum = 0;
+        for _ in 0..self.count {
+            sum += roll_die(self.sides);
+        }
+
+        return sum;
+    }
+}
+
+impl fmt::Display for Scalar {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.value.fmt(f)
+    }
+}
+
+impl Expression for Scalar {
+    fn get_value(&self) -> u32 {
+        return self.value;
+    }
+}
+
+fn roll_die(sides: u32) -> u32
+{
+    return rand::thread_rng().gen::<u32>() % sides;
+}
+
+fn read_u32(roll_def: &mut Peekable<Chars>, default: u32) -> u32
+{
+    let mut nums_found = false;
+    let mut result = 0;
+    while match roll_def.peek() {
+        Some(&'0'...'9') => true,
+        _ => false
+    } {
+        nums_found = true;
+        result *= 10;
+        result += (roll_def.next().unwrap() as u32) - ('0' as u32);
+    }
+
+    return if nums_found { result } else { default };
+}
+
+fn read_operand(chars: &mut Peekable<Chars>) -> Option<Box<Expression>> {
+    match chars.peek() {
+        Some(&'0'...'9') | Some(&'d') => {},
+        _ => return None,
+    }
+
+    let die_count = read_u32(chars, 1);
+    match chars.peek() {
+        Some(&'d') => {
+            chars.next();
+            let sides_count = read_u32(chars, 6);
+            return Some(Box::new(Roll { count: die_count, sides: sides_count }));
+        },
+        _ => {},
+    }
+
+    return Some(Box::new(Scalar{ value: die_count }));
+}
+
+fn chomp(chars: &mut Peekable<Chars>)
+{
+    while chars.peek().unwrap_or(&'_').is_whitespace() {
+        chars.next();
+    }
+}
+
+pub fn roll(roll_def: &str) -> Result<Box<Expression>, ParseError>
+{
+    let mut chars = roll_def.chars().peekable();
+    let mut result: Box<Expression> = Box::new(Scalar { value: 0 });
+    chomp(&mut chars);
+    while chars.peek().is_some() {
+        result = match read_operand(&mut chars) {
+            Some(x) => x,
+            None => return Err(ParseError{ message: "Invalid roll definition"}),
+        };
+        chomp(&mut chars);
+        match chars.next() {
+            Some(operator) => {
+                chomp(&mut chars);
+                if let Some(rhs) = read_operand(&mut chars) {
+                    result = match operator {
+                        '+' => Box::new(Add { lhs: result, rhs: rhs }),
+                        '-' => Box::new(Subtract { lhs: result, rhs: rhs }),
+                        _ => {
+                            return Err(ParseError{ message: "Invalid roll definition"});
+                        }
+                    };
+                } else {
+                    return Err(ParseError { message: "Missing operand" })
+                }
+            },
+            None => {
+                return Ok(result);
+            },
+        }
+
+        chomp(&mut chars);
+    };
+
+    return Ok(result);
+}
+
+fn main()
+{
+    let request = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
+    match roll(&request) {
+        Ok(result) => println!("{}", result.get_value()),
+        Err(err) => println!("ERROR: {}", err.message),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        for &(input, output) in [
+            ("d", Some("d6")),
+            ("d6", Some("d6")),
+            ("3d", Some("3d6")),
+            ("d12", Some("d12")),
+            ("   d12", Some("d12")),
+            ("d12 + 52", Some("d12 + 52")),
+            ("d12 - 8", Some("d12 - 8")),
+        ].into_iter() {
+            let result = roll(input);
+            println!("testing: {}", input);
+            assert_eq!(result.is_ok(), output.is_some());
+            if output.is_some() {
+                assert_eq!(result.ok().unwrap().to_string(), output.unwrap());
+            }
+            println!("\tOK");
+        }
+    }
+}

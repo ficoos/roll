@@ -1,0 +1,7 @@
+[package]
+name = "roll"
+version = "1.0.0"
+authors = ["Saggi Mizrahi <saggi.mizrahi@huawei.com>"]
+
+[dependencies]
+rand = "0.3"
