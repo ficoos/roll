@@ -157,7 +157,12 @@ pub fn roll(roll_def: &str) -> Result<Box<Expression>, ParseError>
 
 fn main()
 {
-    let request = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
+    let request: String;
+    if std::env::args().len() == 1 {
+        request = String::from("d");
+    } else {
+        request = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
+    }
     match roll(&request) {
         Ok(result) => println!("{}", result.get_value()),
         Err(err) => {
