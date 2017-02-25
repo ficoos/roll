@@ -163,7 +163,10 @@ fn main()
     let request = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
     match roll(&request) {
         Ok(result) => println!("{}", result.get_value()),
-        Err(err) => println!("ERROR: {}", err.message),
+        Err(err) => {
+            println!("ERROR: {}", err.message);
+            std::process::exit(-1);
+        }
     }
 }
 
