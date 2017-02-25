@@ -76,7 +76,7 @@ impl Expression for Scalar {
 
 fn roll_die(sides: u32) -> u32
 {
-    return rand::thread_rng().gen::<u32>() % sides;
+    return rand::thread_rng().gen::<u32>() % sides + 1;
 }
 
 fn read_u32(roll_def: &mut Peekable<Chars>, default: u32) -> u32
