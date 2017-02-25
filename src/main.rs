@@ -124,13 +124,12 @@ fn chomp(chars: &mut Peekable<Chars>)
 pub fn roll(roll_def: &str) -> Result<Box<Expression>, ParseError>
 {
     let mut chars = roll_def.chars().peekable();
-    let mut result: Box<Expression> = Box::new(Scalar { value: 0 });
     chomp(&mut chars);
+    let mut result = match read_operand(&mut chars) {
+        Some(x) => x,
+        None => return Err(ParseError{ message: "Invalid roll definition"}),
+    };
     while chars.peek().is_some() {
-        result = match read_operand(&mut chars) {
-            Some(x) => x,
-            None => return Err(ParseError{ message: "Invalid roll definition"}),
-        };
         chomp(&mut chars);
         match chars.next() {
             Some(operator) => {
@@ -151,8 +150,6 @@ pub fn roll(roll_def: &str) -> Result<Box<Expression>, ParseError>
                 return Ok(result);
             },
         }
-
-        chomp(&mut chars);
     };
 
     return Ok(result);
@@ -184,6 +181,7 @@ mod tests {
             ("   d12", Some("d12")),
             ("d12 + 52", Some("d12 + 52")),
             ("d12 - 8", Some("d12 - 8")),
+            ("3d12 - 8 + 10d8", Some("3d12 - 8 + 10d8")),
         ].into_iter() {
             let result = roll(input);
             println!("testing: {}", input);
