@@ -5,17 +5,17 @@ use std::iter::Peekable;
 use std::str::Chars;
 use std::fmt;
 
-pub struct Roll { count: u32, sides: u32 }
-pub struct Scalar { value: u32 }
-pub struct Add { lhs: Box<Expression>, rhs: Box<Expression> }
-pub struct Subtract { lhs: Box<Expression>, rhs: Box<Expression> }
+struct DiceRoll { count: u32, sides: u32 }
+struct Scalar { value: i32 }
+struct Add { lhs: Box<Expression>, rhs: Box<Expression> }
+struct Subtract { lhs: Box<Expression>, rhs: Box<Expression> }
 
 pub struct ParseError {
     message: &'static str,
 }
 
 pub trait Expression : fmt::Display {
-    fn get_value(&self) -> u32;
+    fn get_value(&self) -> i32;
 }
 
 impl fmt::Display for Add {
@@ -25,7 +25,7 @@ impl fmt::Display for Add {
 }
 
 impl Expression for Add {
-    fn get_value(&self) -> u32 {
+    fn get_value(&self) -> i32 {
         self.lhs.get_value() + self.rhs.get_value()
     }
 }
@@ -37,12 +37,12 @@ impl fmt::Display for Subtract {
 }
 
 impl Expression for Subtract {
-    fn get_value(&self) -> u32 {
+    fn get_value(&self) -> i32 {
         self.lhs.get_value() - self.rhs.get_value()
     }
 }
 
-impl fmt::Display for Roll {
+impl fmt::Display for DiceRoll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.count {
             1 => write!(f, "d{}", self.sides),
@@ -51,14 +51,14 @@ impl fmt::Display for Roll {
     }
 }
 
-impl Expression for Roll {
-    fn get_value(&self) -> u32 {
+impl Expression for DiceRoll {
+    fn get_value(&self) -> i32 {
         let mut sum = 0;
         for _ in 0..self.count {
             sum += roll_die(self.sides);
         }
 
-        return sum;
+        return sum as i32;
     }
 }
 
@@ -69,7 +69,7 @@ impl fmt::Display for Scalar {
 }
 
 impl Expression for Scalar {
-    fn get_value(&self) -> u32 {
+    fn get_value(&self) -> i32 {
         return self.value;
     }
 }
@@ -106,12 +106,12 @@ fn read_operand(chars: &mut Peekable<Chars>) -> Option<Box<Expression>> {
         Some(&'d') => {
             chars.next();
             let sides_count = read_u32(chars, 6);
-            return Some(Box::new(Roll { count: die_count, sides: sides_count }));
+            return Some(Box::new(DiceRoll { count: die_count, sides: sides_count }));
         },
         _ => {},
     }
 
-    return Some(Box::new(Scalar{ value: die_count }));
+    return Some(Box::new(Scalar{ value: die_count as i32 }));
 }
 
 fn chomp(chars: &mut Peekable<Chars>)
