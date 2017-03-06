@@ -2,7 +2,6 @@ extern crate rand;
 
 use rand::Rng;
 use std::iter::Peekable;
-use std::str::Chars;
 use std::fmt;
 
 struct DiceRoll { count: u32, sides: u32 }
@@ -79,8 +78,8 @@ fn roll_die(sides: u32) -> u32
     return (rand::thread_rng().gen::<u32>() % sides) + 1;
 }
 
-fn read_u32(roll_def: &mut Peekable<Chars>, default: u32) -> u32
-{
+fn read_u32<T>(roll_def: &mut Peekable<T>, default: u32) -> u32
+    where T: Iterator<Item=char> {
     let mut nums_found = false;
     let mut result = 0;
     while match roll_def.peek() {
@@ -95,7 +94,8 @@ fn read_u32(roll_def: &mut Peekable<Chars>, default: u32) -> u32
     return if nums_found { result } else { default };
 }
 
-fn read_operand(chars: &mut Peekable<Chars>) -> Option<Box<Expression>> {
+fn read_operand<T>(chars: &mut Peekable<T>) -> Option<Box<Expression>>
+    where T: Iterator<Item=char> {
     match chars.peek() {
         Some(&'0'...'9') | Some(&'d') => {},
         _ => return None,
@@ -114,7 +114,7 @@ fn read_operand(chars: &mut Peekable<Chars>) -> Option<Box<Expression>> {
     return Some(Box::new(Scalar{ value: die_count as i32 }));
 }
 
-fn chomp(chars: &mut Peekable<Chars>)
+fn chomp<T>(chars: &mut Peekable<T>) where T: Iterator<Item=char>
 {
     while chars.peek().unwrap_or(&'_').is_whitespace() {
         chars.next();
