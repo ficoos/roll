@@ -78,50 +78,53 @@ impl Expression for Scalar {
 
 fn roll_die(sides: u32) -> u32
 {
-    return (rand::thread_rng().gen::<u32>() % sides) + 1;
+    match sides {
+        0 => 0,
+        _ => (rand::thread_rng().gen::<u32>() % sides) + 1
+    }
 }
 
 fn read_u32<T>(roll_def: &mut Peekable<T>, default: u32) -> u32
     where T: Iterator<Item=char> {
-    let mut nums_found = false;
-    let mut result = 0;
-    while match roll_def.peek() {
-        Some(&'0'...'9') => true,
-        _ => false
-    } {
-        nums_found = true;
-        result *= 10;
-        result += (roll_def.next().unwrap() as u32) - ('0' as u32);
-    }
+        let mut nums_found = false;
+        let mut result = 0;
+        while match roll_def.peek() {
+            Some(&'0'...'9') => true,
+            _ => false
+        } {
+            nums_found = true;
+            result *= 10;
+            result += (roll_def.next().unwrap() as u32) - ('0' as u32);
+        }
 
-    return if nums_found { result } else { default };
+        return if nums_found { result } else { default };
 }
 
 fn read_operand<T>(chars: &mut Peekable<T>) -> Option<Box<Expression>>
     where T: Iterator<Item=char> {
-    match chars.peek() {
-        Some(&'0'...'9') | Some(&'d') => {},
-        _ => return None,
-    }
+        match chars.peek() {
+            Some(&'0'...'9') | Some(&'d') => {},
+            _ => return None,
+        }
 
-    let die_count = read_u32(chars, 1);
-    match chars.peek() {
-        Some(&'d') => {
-            chars.next();
-            let sides_count = read_u32(chars, 6);
-            if die_count == 0 {
-                return None;
-            }
+        let die_count = read_u32(chars, 1);
+        match chars.peek() {
+            Some(&'d') => {
+                chars.next();
+                let sides_count = read_u32(chars, 6);
+                if die_count == 0 {
+                    return None;
+                }
 
-            return Some(Box::new(DiceRoll {
-                count: die_count,
-                sides: sides_count,
-            }));
-        },
-        _ => {},
-    }
+                return Some(Box::new(DiceRoll {
+                    count: die_count,
+                    sides: sides_count,
+                }));
+            },
+            _ => {},
+        }
 
-    return Some(Box::new(Scalar{ value: die_count as i32 }));
+        return Some(Box::new(Scalar{ value: die_count as i32 }));
 }
 
 fn chomp<T>(chars: &mut Peekable<T>) where T: Iterator<Item=char>
@@ -169,6 +172,7 @@ fn main()
 {
     let request: String;
     if std::env::args().len() == 1 {
+        // Default roll
         request = String::from("d");
     } else {
         request = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
