@@ -109,7 +109,14 @@ fn read_operand<T>(chars: &mut Peekable<T>) -> Option<Box<Expression>>
         Some(&'d') => {
             chars.next();
             let sides_count = read_u32(chars, 6);
-            return Some(Box::new(DiceRoll { count: die_count, sides: sides_count }));
+            if die_count == 0 {
+                return None;
+            }
+
+            return Some(Box::new(DiceRoll {
+                count: die_count,
+                sides: sides_count,
+            }));
         },
         _ => {},
     }
@@ -186,6 +193,7 @@ mod tests {
             ("d6", Some("d6")),
             ("3d", Some("3d6")),
             ("d12", Some("d12")),
+            ("0d12", None),
             ("   d12", Some("d12")),
             ("d12 + 52", Some("d12 + 52")),
             ("d12 - 8", Some("d12 - 8")),
