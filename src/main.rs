@@ -9,6 +9,9 @@ struct Scalar { value: i32 }
 struct Add { lhs: Box<Expression>, rhs: Box<Expression> }
 struct Subtract { lhs: Box<Expression>, rhs: Box<Expression> }
 
+const INVALID_ROLL_ERROR: ParseError = ParseError { message: "Invalid roll definition" };
+const MISSING_OPERAND_ERROR: ParseError = ParseError { message: "Missing operand"};
+
 pub struct ParseError {
     message: &'static str,
 }
@@ -127,7 +130,7 @@ pub fn roll(roll_def: &str) -> Result<Box<Expression>, ParseError>
     chomp(&mut chars);
     let mut result = match read_operand(&mut chars) {
         Some(x) => x,
-        None => return Err(ParseError{ message: "Invalid roll definition"}),
+        None => return Err(INVALID_ROLL_ERROR),
     };
     while chars.peek().is_some() {
         chomp(&mut chars);
@@ -139,11 +142,11 @@ pub fn roll(roll_def: &str) -> Result<Box<Expression>, ParseError>
                         '+' => Box::new(Add { lhs: result, rhs: rhs }),
                         '-' => Box::new(Subtract { lhs: result, rhs: rhs }),
                         _ => {
-                            return Err(ParseError{ message: "Invalid roll definition"});
+                            return Err(MISSING_OPERAND_ERROR);
                         }
                     };
                 } else {
-                    return Err(ParseError { message: "Missing operand" })
+                    return Err(INVALID_ROLL_ERROR)
                 }
             },
             None => {
